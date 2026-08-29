@@ -21,6 +21,7 @@ class System(Base):
 
     # Relationships
     primary_owner = relationship("User", back_populates="owned_systems")
+    sessions = relationship("Session", back_populates="system")
 
 class Session(Base):
     __tablename__ = "sessions"
@@ -34,6 +35,8 @@ class Session(Base):
     
     # Foreign Keys
     officer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    system_id = Column(Integer, ForeignKey("systems.id"), nullable=False)
 
     # Relationships
     officer = relationship("User", back_populates="sessions")
+    system = relationship("System", back_populates="sessions")
