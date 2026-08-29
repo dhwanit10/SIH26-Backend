@@ -172,14 +172,19 @@ async def verify_person(
     db.add(verification)
     db.commit()
     db.refresh(verification)
+
+    mrz = False
+    if extracted_data.doc_type == "passport":
+        mrz = True
     
     # 5. Create Risk Entry
     risk = Risk(
         ocr_confidence=ocr_confidence,
+        mrz_validation=mrz,
         face_match_score=face_score,
         database_verification=True,
         approved=False,
-        tampering_probability=random.uniform(1.0, 10.0), 
+        tampering_probability=(1-face_score+0.2)*10, 
         status=RiskStatus.PENDING,
         veri_id=verification.id,
         officer_id=officer_id,
@@ -188,11 +193,14 @@ async def verify_person(
     db.add(risk)
     db.commit()
     db.refresh(risk)
+
+
     
     return VerifyPersonResponse(
         verification_id=verification.id,
         risk_id=risk.id,
         face_match_score=risk.face_match_score,
+        mrz_validation=mrz,
         ocr_confidence=risk.ocr_confidence,
         tampering_probability=risk.tampering_probability,
         status=risk.status

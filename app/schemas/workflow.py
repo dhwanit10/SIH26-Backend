@@ -39,6 +39,7 @@ class VerifyPersonResponse(BaseModel):
     risk_id: int
     face_match_score: float
     ocr_confidence: float
+    mrz_validation: bool
     tampering_probability: float
     status: RiskStatus
 
