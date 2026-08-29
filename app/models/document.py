@@ -25,6 +25,7 @@ class Document(Base):
     expiry_date = Column(Date, nullable=True)
     mrz_no = Column(String(100), nullable=True)
     person_image = Column(LargeBinary, nullable=True)
+    address = Column(String(500), nullable=True)
     
     # Foreign Keys
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)

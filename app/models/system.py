@@ -1,8 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Date
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 import enum
-from datetime import datetime
+from datetime import datetime, date
 
 class SystemStatus(enum.Enum):
     ONLINE = "online"
@@ -29,8 +29,8 @@ class Session(Base):
     id = Column(Integer, primary_key=True, index=True)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=True)
-    start_date = Column(DateTime, nullable=False)
-    end_date = Column(DateTime, nullable=True)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=True)
     no_of_cases = Column(Integer, default=0)
     
     # Foreign Keys
@@ -40,3 +40,4 @@ class Session(Base):
     # Relationships
     officer = relationship("User", back_populates="sessions")
     system = relationship("System", back_populates="sessions")
+    verifications = relationship("VerificationEntry", back_populates="session")

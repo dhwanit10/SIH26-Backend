@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api.v1.endpoints import users, documents, verification
 from app.core.test import createTables
 from app.core.init_db import init_database, reset_database
 from sqlalchemy import text
@@ -32,6 +31,13 @@ app.add_middleware(
 # app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
 # app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["documents"])
 # app.include_router(verification.router, prefix=f"{settings.API_V1_STR}/verification", tags=["verification"])
+from app.api.v1.endpoints import workflow, history, documents, system, session, auth
+app.include_router(workflow.router, prefix=f"{settings.API_V1_STR}/workflow", tags=["workflow"])
+app.include_router(history.router, prefix=f"{settings.API_V1_STR}/data", tags=["data"])
+app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["documents"])
+app.include_router(system.router, prefix=f"{settings.API_V1_STR}/system", tags=["system"])
+app.include_router(session.router, prefix=f"{settings.API_V1_STR}/session", tags=["session"])
+app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 
 
 @app.get("/")
