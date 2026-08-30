@@ -17,7 +17,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String(100), unique=True, nullable=False, index=True)
-    password = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=False)
     full_name = Column(String(200), nullable=False)
     dob = Column(Date, nullable=False)
     gender = Column(String(10), nullable=False)

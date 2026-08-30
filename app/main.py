@@ -1,12 +1,32 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.core.test import createTables
-from app.core.init_db import init_database, reset_database
-from sqlalchemy import text
-# Create tables
+from app.core.dependencies import get_current_user
+
+from app.api.v1.endpoints import (
+    workflow,
+    history,
+    documents,
+    system,
+    session,
+    auth,
+    users,
+    verification
+)
+
+
+# ==========================================
+# CREATE DATABASE TABLES
+# ==========================================
+
 Base.metadata.create_all(bind=engine)
+
+
+# ==========================================
+# CREATE FASTAPI APP
+# ==========================================
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -14,7 +34,11 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
+
+# ==========================================
 # CORS
+# ==========================================
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -23,36 +47,119 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# uncomment this for the first time and then remove this code. 
-# createTables()
+
+# ==========================================
+# PUBLIC APIs
+# ==========================================
+
+# USER REGISTRATION AND LOGIN
+# These must remain public because the user
+# needs to get a token before authentication.
+
+app.include_router(
+    users.router,
+    prefix=f"{settings.API_V1_STR}/users",
+    tags=["users"]
+)
 
 
-# Include routers
-# app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
-# app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["documents"])
-# app.include_router(verification.router, prefix=f"{settings.API_V1_STR}/verification", tags=["verification"])
-from app.api.v1.endpoints import workflow, history, documents, system, session, auth
-app.include_router(workflow.router, prefix=f"{settings.API_V1_STR}/workflow", tags=["workflow"])
-app.include_router(history.router, prefix=f"{settings.API_V1_STR}/data", tags=["data"])
-app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["documents"])
-app.include_router(system.router, prefix=f"{settings.API_V1_STR}/system", tags=["system"])
-app.include_router(session.router, prefix=f"{settings.API_V1_STR}/session", tags=["session"])
-app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+# ==========================================
+# PROTECTED APIs
+# JWT TOKEN REQUIRED
+# ==========================================
 
+app.include_router(
+    verification.router,
+    prefix=f"{settings.API_V1_STR}/verification",
+    tags=["verification"],
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+
+app.include_router(
+    workflow.router,
+    prefix=f"{settings.API_V1_STR}/workflow",
+    tags=["workflow"],
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+
+app.include_router(
+    history.router,
+    prefix=f"{settings.API_V1_STR}/data",
+    tags=["data"],
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+
+app.include_router(
+    documents.router,
+    prefix=f"{settings.API_V1_STR}/documents",
+    tags=["documents"],
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+
+app.include_router(
+    system.router,
+    prefix=f"{settings.API_V1_STR}/system",
+    tags=["system"],
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+
+app.include_router(
+    session.router,
+    prefix=f"{settings.API_V1_STR}/session",
+    tags=["session"],
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+
+# Logout can also be protected
+app.include_router(
+    auth.router,
+    prefix=f"{settings.API_V1_STR}/auth",
+    tags=["auth"],
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
+
+
+# ==========================================
+# ROOT API
+# ==========================================
 
 @app.get("/")
 async def root():
-    # try:
-    #     with engine.connect() as conn:
-    #         result = conn.execute(text("SELECT 1"))
-    #         print("✅ Database connection successful!")
-    # except Exception as e:
-    #     print(f"❌ Database connection failed: {e}")
+
     return {
         "message": f"Welcome to {settings.PROJECT_NAME}",
         "version": settings.VERSION
     }
 
+
+# ==========================================
+# HEALTH CHECK
+# Keep public for deployment monitoring
+# ==========================================
+
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+
+    return {
+        "status": "healthy"
+    }
