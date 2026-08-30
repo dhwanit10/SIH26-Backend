@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.core.dependencies import get_current_user
-
+from app.core.init_db import reset_database, init_database
 from app.api.v1.endpoints import (
     workflow,
     history,
@@ -16,17 +16,9 @@ from app.api.v1.endpoints import (
     verification
 )
 
+# uncomment this for running the first time and then delete this code 
+# init_database()
 
-# ==========================================
-# CREATE DATABASE TABLES
-# ==========================================
-
-Base.metadata.create_all(bind=engine)
-
-
-# ==========================================
-# CREATE FASTAPI APP
-# ==========================================
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -34,10 +26,6 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-
-# ==========================================
-# CORS
-# ==========================================
 
 app.add_middleware(
     CORSMiddleware,

@@ -31,3 +31,15 @@ class SystemResponse(BaseModel):
 class SystemsResponse(BaseModel):
     total: int
     systems: list[SystemResponse]
+    
+
+class SystemCreateRequest(BaseModel):
+    system_name: str
+    primary_owner_id: int
+
+
+class SystemCreateResponse(BaseModel):
+    id: int
+    system_name: str
+    status: SystemStatus
+    primary_owner_id: int

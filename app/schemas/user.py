@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr
 
 from app.models.user import UserType, UserStatus
 
-
+from typing import Optional
 # =====================================
 # CREATE USER REQUEST
 # =====================================
@@ -115,10 +115,9 @@ class FaceImageUploadResponse(BaseModel):
 # =====================================
 
 class UserLogin(BaseModel):
-
     user_id: int
-
     password: str
+    system_id: int
 
 
 # =====================================
@@ -134,7 +133,17 @@ class UserLoginResponse(BaseModel):
     username: str
 
     user_type: UserType
-
+    system_id: int
     access_token: str
 
     token_type: str
+
+class VerifyUserResponse(BaseModel):
+    success: bool
+    user_id: int
+    system_id: int
+    session_id: Optional[int] = None
+    username: str
+    full_name: str
+    face_match_score: float
+    message: str

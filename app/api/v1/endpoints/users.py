@@ -8,8 +8,8 @@ from fastapi import (
     status
 )
 
-from sqlalchemy.orm import Session
 
+from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
 from app.core.security import create_access_token
@@ -23,8 +23,11 @@ from app.schemas.user import (
     UserResponse,
     UsersListResponse,
     UserLogin,
-    UserLoginResponse
+    UserLoginResponse,
+    VerifyUserResponse
 )
+from app.models.system import System, SystemStatus
+from app.models.user import User, UserStatus, UserType
 
 
 router = APIRouter()
@@ -199,7 +202,7 @@ def create_user(
 
         username=user_data.username,
 
-        password=hashed_password,
+        password_hash=hashed_password,
 
         full_name=user_data.full_name,
 
@@ -404,6 +407,8 @@ async def upload_face_image(
     }
 
 
+
+
 # =================================================
 # API 4: USER LOGIN
 # JSON FORMAT
@@ -414,94 +419,77 @@ async def upload_face_image(
     response_model=UserLoginResponse
 )
 def login_user(
-
     login_data: UserLogin,
-
     db: Session = Depends(get_db)
-
 ):
-
-    # -----------------------------------
-    # FIND USER
-    # -----------------------------------
-
-    user = db.query(User).filter(
-
-        User.id == login_data.user_id
-
-    ).first()
-
+    user = (
+        db.query(User)
+        .filter(User.id == login_data.user_id)
+        .first()
+    )
 
     if not user:
-
         raise HTTPException(
-
             status_code=status.HTTP_401_UNAUTHORIZED,
-
             detail="Invalid user ID or password"
-
         )
 
+    if user.user_type != UserType.OFFICER:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only officers can login"
+        )
 
-    # -----------------------------------
-    # VERIFY PASSWORD
-    # -----------------------------------
-
-    password_valid = verify_password(
-
+    if not verify_password(
         login_data.password,
+        user.password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID or password"
+        )
 
-        user.password
+    if user.status == UserStatus.ONLINE:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User is already online"
+        )
 
+    system = (
+        db.query(System)
+        .filter(System.id == login_data.system_id)
+        .first()
     )
 
-
-    if not password_valid:
-
+    if not system:
         raise HTTPException(
-
-            status_code=status.HTTP_401_UNAUTHORIZED,
-
-            detail="Invalid user ID or password"
-
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="System not found"
         )
 
-
-    # -----------------------------------
-    # CREATE JWT TOKEN
-    # -----------------------------------
+    if system.status != SystemStatus.OFFLINE:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="System is not available"
+        )
 
     access_token = create_access_token(
-
         data={
-
             "user_id": user.id,
-
             "username": user.username,
-
-            "user_type": user.user_type.value
-
+            "user_type": user.user_type.value,
+            "system_id": system.id
         }
-
     )
-
-
-    # -----------------------------------
-    # RETURN RESPONSE
-    # -----------------------------------
 
     return UserLoginResponse(
-
         success=True,
-
         user_id=user.id,
-
         username=user.username,
-
         user_type=user.user_type,
-
+        system_id=system.id,
         access_token=access_token,
-
         token_type="bearer"
-
     )
+
+
