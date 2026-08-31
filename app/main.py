@@ -99,10 +99,7 @@ app.include_router(
 app.include_router(
     system.router,
     prefix=f"{settings.API_V1_STR}/system",
-    tags=["system"],
-    dependencies=[
-        Depends(get_current_user)
-    ]
+    tags=["system"]
 )
 
 

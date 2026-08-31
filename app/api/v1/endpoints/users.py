@@ -424,7 +424,7 @@ def login_user(
 ):
     user = (
         db.query(User)
-        .filter(User.id == login_data.user_id)
+        .filter(User.username == login_data.username)
         .first()
     )
 
@@ -434,11 +434,11 @@ def login_user(
             detail="Invalid user ID or password"
         )
 
-    if user.user_type != UserType.OFFICER:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only officers can login"
-        )
+    # if user.user_type != UserType.OFFICER:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_403_FORBIDDEN,
+    #         detail="Only officers can login"
+    #     )
 
     if not verify_password(
         login_data.password,

@@ -115,7 +115,7 @@ class FaceImageUploadResponse(BaseModel):
 # =====================================
 
 class UserLogin(BaseModel):
-    user_id: int
+    username: str
     password: str
     system_id: int
 
