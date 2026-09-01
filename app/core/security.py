@@ -3,13 +3,13 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
-
+from app.core.config import settings
 
 # Change this later and preferably move it to .env
-SECRET_KEY = "SIH26_SUPER_SECRET_KEY_2026_CHANGE_THIS"
-ALGORITHM = "HS256"
+SECRET_KEY = settings.SECRET_KEY
+ALGORITHM = settings.ALGORITHM
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 120
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 
 security_scheme = HTTPBearer()
