@@ -15,7 +15,7 @@ class Document(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     full_name = Column(String(200), nullable=False)
-    doc_number = Column(String(50), unique=True, nullable=False, index=True)
+    doc_number = Column(String(50), nullable=False, index=True)
     doc_type = Column(Enum(DocumentTypeEnum), nullable=False)
     gender = Column(String(10), nullable=True)
     nationality = Column(String(100), nullable=True)

@@ -14,11 +14,15 @@ from app.models.risk import Risk, RiskStatus
 from app.models.verification import VerificationEntry
 from app.models.system import Session as SystemSession
 from app.models.user import User
-import random
 from app.core.ocr_parser import process_document_image
 import json
 from app.core.face_matcher import match_faces, match_faces_with_cropping
-import requests
+
+from app.blockchain.hash_utils import generate_document_hash
+from app.blockchain.service import register_document, verify_document
+
+from app.models.blockchain_document import BlockchainDocument
+
 router = APIRouter()
 
 
@@ -143,8 +147,46 @@ async def verify_person(
     
     db.commit()
     db.refresh(doc)
-     
-     # 3. Match face using the new face matcher
+
+    #blockchain verification
+    blockchain_document = (
+                db.query(BlockchainDocument)
+                .filter(
+                    BlockchainDocument.doc_number == extracted_data.doc_number
+                )
+                .first()
+            )
+
+    if not blockchain_document:
+        pass
+
+    document_hash, canonical_string = generate_document_hash(
+        doc_type=extracted_data.doc_type,
+        doc_number=extracted_data.doc_number,
+        full_name=extracted_data.full_name,
+        dob=extracted_data.dob,
+        gender=extracted_data.gender,
+        nationality=extracted_data.nationality
+    )
+    result = verify_document(
+        document_id=str(blockchain_document.id),
+        document_hash=document_hash
+    )
+
+    try:
+        # Use match_faces for simple matching
+        blockchain_face_score, blockchain_is_match = match_faces(blockchain_document.person_image, doc.doc_photo)
+        
+        
+        
+    except ValueError as e:
+        # If face matching fails, set default values
+        blockchain_face_score = 0.0
+        print(f"Face matching failed: {str(e)}")
+
+
+    
+    # 3. Match face using the new face matcher
     try:
         # Use match_faces for simple matching
         face_score, is_match = match_faces(person_image_bytes, doc.doc_photo)
@@ -176,7 +218,13 @@ async def verify_person(
     mrz = False
     if extracted_data.doc_type == "passport":
         mrz = True
-    
+
+    verification_confidence = (
+        0.25 * face_score
+        + 0.30 * blockchain_face_score
+        + 0.30 * (1.0 if result else 0.0)
+        + 0.15 * ocr_confidence
+    )
     # 5. Create Risk Entry
     risk = Risk(
         ocr_confidence=ocr_confidence,
@@ -184,7 +232,7 @@ async def verify_person(
         face_match_score=face_score,
         database_verification=True,
         approved=False,
-        tampering_probability=(1-face_score+0.2)*10, 
+        tampering_probability=(1.0 - verification_confidence) * 100, 
         status=RiskStatus.PENDING,
         veri_id=verification.id,
         officer_id=officer_id,
@@ -194,7 +242,7 @@ async def verify_person(
     db.commit()
     db.refresh(risk)
 
-
+    
     
     return VerifyPersonResponse(
         verification_id=verification.id,
@@ -203,7 +251,10 @@ async def verify_person(
         mrz_validation=mrz,
         ocr_confidence=risk.ocr_confidence,
         tampering_probability=risk.tampering_probability,
-        status=risk.status
+        status=risk.status,
+        blockchain_verification=result,
+        transaction_link=f"https://sepolia.etherscan.io/tx/{blockchain_document.transaction_hash}",
+        blockchain_face_score=blockchain_face_score
     )
 
 @router.post("/update-status", response_model=UpdateStatusResponse)

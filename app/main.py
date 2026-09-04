@@ -15,6 +15,8 @@ from app.api.v1.endpoints import (
     users,
     verification
 )
+from app.api.v1.endpoints import blockchain
+
 
 # uncomment this for running the first time and then delete this code 
 # init_database()
@@ -35,6 +37,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(blockchain.router, prefix=f"{settings.API_V1_STR}/blockchain", tags=["blockchain"])
 
 # ==========================================
 # PUBLIC APIs

@@ -42,6 +42,9 @@ class VerifyPersonResponse(BaseModel):
     mrz_validation: bool
     tampering_probability: float
     status: RiskStatus
+    blockchain_verification: bool
+    transaction_link: str
+    blockchain_face_score: float
 
 class UpdateStatusRequest(BaseModel):
     risk_id: int

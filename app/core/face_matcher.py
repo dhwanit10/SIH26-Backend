@@ -13,6 +13,76 @@ app.prepare(ctx_id=-1, det_size=(640, 640))  # ctx_id=-1 for CPU, 0 for GPU
 FACE_MATCH_THRESHOLD = 0.4
 
 
+def extract_person_photo_for_blockchain(image_bytes: bytes):
+
+    if not image_bytes:
+        return {
+            "success": False,
+            "reason": "Could not read image"
+        }
+
+
+     # Convert bytes to numpy array
+    nparr = np.frombuffer(image_bytes, np.uint8)
+    image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    
+    if image is None:
+        return {
+            "success": False,
+            "reason": "Could not decode image from bytes"
+        }
+    
+    # Use InsightFace for better face detection
+    faces = app.get(image)
+    
+    if not faces:
+        return {
+            "success": False,
+            "reason": "No face detected"
+        }
+    
+    # Select face with highest confidence
+    best_face = max(faces, key=lambda f: f.det_score)
+    
+    # Get face bounding box
+    bbox = best_face.bbox.astype(int)
+    x, y, x2, y2 = bbox[0], bbox[1], bbox[2], bbox[3]
+    w = x2 - x
+    h = y2 - y
+    
+    # Expand around face for better context
+    px = int(w * 0.5)
+    py = int(h * 0.7)
+    
+    x1 = max(0, x - px)
+    y1 = max(0, y - py)
+    x2 = min(image.shape[1], x + w + px)
+    y2 = min(image.shape[0], y + h + py)
+    
+    crop = image[y1:y2, x1:x2]
+
+    success, encoded_image = cv2.imencode(
+        ".jpg",
+        crop
+    )
+
+    if not success:
+        return {
+            "success": False,
+            "reason": "Could not encode cropped person image"
+        }
+
+
+    person_image_bytes = encoded_image.tobytes()
+
+
+    return {
+        "success": True,
+        "image": person_image_bytes
+    }
+
+
+
 def extract_person_photo_from_bytes(image_bytes: bytes, output_path: Optional[str] = None) -> dict:
     """
     Extract face from image bytes and save cropped face.

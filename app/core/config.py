@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     SECRET_KEY: str = os.getenv("SECRET_KEY")
     ALGORITHM: str = os.getenv("ALGORITHM")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES")
+
+    # Blockchain
+    SEPOLIA_RPC_URL: str = os.getenv("SEPOLIA_RPC_URL")
+    BLOCKCHAIN_PRIVATE_KEY: str = os.getenv("BLOCKCHAIN_PRIVATE_KEY")
+    CONTRACT_ADDRESS: str = os.getenv("CONTRACT_ADDRESS")
     
     class Config:
         env_file = ".env"
