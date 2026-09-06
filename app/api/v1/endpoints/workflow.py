@@ -152,40 +152,41 @@ async def verify_person(
     blockchain_document = (
                 db.query(BlockchainDocument)
                 .filter(
-                    BlockchainDocument.doc_number == extracted_data.doc_number
+                    BlockchainDocument.doc_number == doc.doc_number
                 )
                 .first()
             )
-
+    result = False
     if not blockchain_document:
-        pass
-
-    document_hash, canonical_string = generate_document_hash(
-        doc_type=extracted_data.doc_type,
-        doc_number=extracted_data.doc_number,
-        full_name=extracted_data.full_name,
-        dob=extracted_data.dob,
-        gender=extracted_data.gender,
-        nationality=extracted_data.nationality
-    )
-    result = verify_document(
-        document_id=str(blockchain_document.id),
-        document_hash=document_hash
-    )
-
-    try:
-        # Use match_faces for simple matching
-        blockchain_face_score, blockchain_is_match = match_faces(blockchain_document.person_image, doc.doc_photo)
-        
-        
-        
-    except ValueError as e:
-        # If face matching fails, set default values
+        result = False
         blockchain_face_score = 0.0
-        print(f"Face matching failed: {str(e)}")
+    else:
+        document_hash, canonical_string = generate_document_hash(
+            doc_type=doc.doc_type.value,
+            doc_number=doc.doc_number,
+            full_name=doc.full_name,
+            dob=doc.dob,
+            gender=doc.gender,
+            nationality=doc.nationality
+        )
+
+        try:
+            result = verify_document(
+                    document_id=str(blockchain_document.id),
+                    document_hash=document_hash
+                )
+            print(result)
+
+            # Use match_faces for simple matching
+            blockchain_face_score, blockchain_is_match = match_faces(blockchain_document.person_image, doc.doc_photo)
+
+        except ValueError as e:
+            # If face matching fails, set default values
+            blockchain_face_score = 0.0
+            result = False
+            print(f"Face matching failed: {str(e)}")
 
 
-    
     # 3. Match face using the new face matcher
     try:
         # Use match_faces for simple matching

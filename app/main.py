@@ -37,7 +37,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(blockchain.router, prefix=f"{settings.API_V1_STR}/blockchain", tags=["blockchain"])
 
 # ==========================================
 # PUBLIC APIs
@@ -53,6 +52,14 @@ app.include_router(
     tags=["users"]
 )
 
+app.include_router(
+    blockchain.router, 
+    prefix=f"{settings.API_V1_STR}/blockchain", 
+    tags=["blockchain"],
+    dependencies=[
+        Depends(get_current_user)
+    ]
+)
 
 # ==========================================
 # PROTECTED APIs

@@ -3,7 +3,8 @@ from fastapi import (
     Depends,
     UploadFile,
     File,
-    HTTPException
+    HTTPException,
+    Response
 )
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -190,7 +191,7 @@ async def register_document_on_blockchain(
         blockchain_document = (
             db.query(BlockchainDocument)
             .filter(
-                BlockchainDocument.id == data.document_id
+                BlockchainDocument.doc_number == data.doc_number
             )
             .first()
         )
@@ -219,7 +220,7 @@ async def register_document_on_blockchain(
 
 
         result = register_document(
-            document_id=str(data.document_id),
+            document_id=str(blockchain_document.id),
             document_hash=document_hash
         )
 
@@ -236,7 +237,7 @@ async def register_document_on_blockchain(
 
         return {
             "success": True,
-            "document_id": data.document_id,
+            "document_id": blockchain_document.id,
             "canonical_string": canonical_string,
             "document_hash": document_hash,
             "transaction_hash": result["transaction_hash"],
@@ -263,11 +264,18 @@ async def register_document_on_blockchain(
 
 @router.post("/check")
 async def check_document_on_blockchain(
-    data: BlockchainRegisterRequest
+    data: BlockchainRegisterRequest,
+    db: Session = Depends(get_db)
 ):
 
     try:
-
+        blockchain_document = (
+                db.query(BlockchainDocument)
+                .filter(
+                    BlockchainDocument.doc_number == data.doc_number
+                )
+                .first()
+            )
         document_hash, canonical_string = generate_document_hash(
             doc_type=data.doc_type,
             doc_number=data.doc_number,
@@ -278,12 +286,14 @@ async def check_document_on_blockchain(
         )
 
         result = verify_document(
-            document_id=str(data.document_id),
+            document_id=str(blockchain_document.id),
             document_hash=document_hash
         )
 
         return {
-            "result": result
+            "document_id": blockchain_document.id,
+            "result": result,
+            "transaction_link" : f"https://sepolia.etherscan.io/tx/{blockchain_document.transaction_hash}"
         }
 
 
@@ -293,3 +303,57 @@ async def check_document_on_blockchain(
             status_code=500,
             detail=str(e)
         )
+
+
+def build_blockchain_data(blockchain_data):
+    data_list = []
+
+    for data in blockchain_data:
+        data_list.append(
+            {
+                "blockchain_document_id": data.id,
+                "doc_number": data.doc_number,
+                "canonical_string": data.canonical_string,
+                "transaction_hash": data.transaction_hash,
+                "transaction_link": f"https://sepolia.etherscan.io/tx/{data.transaction_hash}"
+            }
+        )
+
+    return data_list
+
+@router.get("/get-all")
+def get_all_data(
+    db: Session = Depends(get_db)
+):
+    try:
+        blockchain_data = db.query(BlockchainDocument).order_by(BlockchainDocument.created_at.desc()).all()
+        return build_blockchain_data(blockchain_data)
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+@router.get("/doc-image/{doc_id}")
+async def get_person_image(
+    doc_id: int,
+    db: Session = Depends(get_db)
+):
+    document = (
+        db.query(BlockchainDocument)
+        .filter(BlockchainDocument.id == doc_id)
+        .first()
+    )
+
+    if not document or not document.person_image:
+        raise HTTPException(
+            status_code=404,
+            detail="doc image not found"
+        )
+
+    return Response(
+        content=document.original_document_image,
+        media_type="image/jpeg"
+    )
